@@ -1,0 +1,152 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+<PageTitle>Transporto nuomos Administravimo skydas</PageTitle>
+
+@if (isloggedIn)
+{
+    <MudText Typo="Typo.h5" Class="mt-1 text-center">Elektrinio Transporto nuomos Valdymo Skydas</MudText>
+    <div class="row d-flex justify-content-center ">
+        @if (showAdminFunctions && isloggedIn)
+        {
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center ">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/kategorijos.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Kategorijų valdymas</h2>
+                <p>Informacija apie transporto kategorijas ir jų valdymas</p>
+                    <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/categories"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/punktai.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Punktų valdymas</h2>
+                <p>Informacija apie punktus ir jų valdymas</p>
+                    <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/locations"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/darbuotojai.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Darbuotojų valdymas</h2>
+                <p>Informacija apie darbuotojus ir jų valdymas</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/workers"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/transportas.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Transporto valdymas</h2>
+                <p>Galimybė pridėti ir kitaip valdyti transportą</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/transports"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/finansai.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Finansų Statistika</h2>
+                <p>Informacija apie išlaidas ir uždarbį</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/finances"))">Eiti</button>
+                </div>
+            </div>
+        }
+        @if (showUserFunctions && isloggedIn)
+        {
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/order.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Užsakymų valdymas</h2>
+                <p>Informacija apie ateinančius ir vykstančius užsakymus</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/orders"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/klientai.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Klientų valdymas</h2>
+                <p>Informacija apie klientus ir jų balanso valdymas</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/clients"))">Eiti</button>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 d-flex flex-column align-items-center">
+                <div class="border border-dark rounded p-3 w-100 d-flex flex-column align-items-center">
+                    <MudImage Src="transports/prieziura.png" Alt="img" Width="100" Height="100" />
+                    <h2 class="text-dark">Transporto Remonto valdymas</h2>
+                <p>Informacija apie transporto priežiūras ir būsenos</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="@(()=>NavigationManager.NavigateTo("/transportssimple"))">Eiti</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="col-md-12 text-danger">Neturite suteiktu privilegiju</p>
+        }
+    </div>
+
+}
+else{
+    <div class="d-flex align-items-center justify-content-center flex-column">
+        <MudText>Kad Matytumėtę turinį turite prisijungti</MudText>
+        <MudNavLink Href="/login" Match="NavLinkMatch.Prefix" class="btn btn-lg mx-auto">Prisijungti</MudNavLink>
+    </div>
+}
+@code {
+		private bool showAdminFunctions;
+		private bool showUserFunctions;
+		private bool isloggedIn;
+	protected override async Task OnInitializedAsync()
+	{
+		Worker currentloggedin = new();
+		//worker logic to get current worker to check if logged in
+		var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+		try
+		{
+			currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+		}
+		catch (Exception ex)
+		{
+
+		}
+		if (currentloggedin != null)
+		{
+			Console.WriteLine("Deserialization successful");
+		}
+		else
+		{
+			Console.WriteLine("Deserialization failed");
+		}
+
+		if (currentloggedin.worker_id is not 0 && currentloggedin.privillege_id == 2)
+		{
+			//that means a user has logged in and is admin
+			showAdminFunctions = true;
+			showUserFunctions = true;
+			isloggedIn = true;
+		}
+		else if (currentloggedin.worker_id is not 0 && currentloggedin.privillege_id == 1)
+		{
+			//that means a user has logged in but is a regular worker
+			showAdminFunctions = false;
+			showUserFunctions = true;
+			isloggedIn = true;
+		}
+		else
+		{
+			//that means a user has logged in but is has no role yet
+			showAdminFunctions = false;
+			showUserFunctions = false;
+			isloggedIn = false;
+		}
+
+	}
+	}
+
+

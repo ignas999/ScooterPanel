@@ -1,0 +1,362 @@
+﻿@page "/orders"
+@page "/orders/user/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+	<PageTitle> Rezervacijų valdymas</PageTitle>
+	<h3>Rezervacijų valdymas</h3>
+
+
+@if (getordersError || orders is null )
+{
+    <p>Unable to get orders from api.</p>
+}
+@if (orders.Count == 0)
+{
+    <p>Neturi Užsakymų</p>
+}
+else
+{
+    <MudDataGrid Items="@orders" Filterable="true" FilterMode="@DataGridFilterMode.ColumnFilterRow">
+        <Columns>
+         <PropertyColumn Property="p => p.order_id" Filterable="false" Title="ID" />
+         <PropertyColumn Property="p => p.Status.name" Title="Būsena" />
+         <PropertyColumn Property="p => p.User.username +':'+' '+ p.User.email" Title="Kliento Informacija" />
+            <PropertyColumn Property="p => p.Transport.name" Title="Transporto Pavadinimas" />
+            <PropertyColumn Property="p => p.transport_id" Title="Transporto ID" />
+            <PropertyColumn Property="p => p.amount.ToString() +'\u20AC'" Title="Užsakymo suma" />
+         <PropertyColumn Property="p => p.start_date" Title="Pradžia" />
+         <PropertyColumn Property="p => p.end_date" Title="Pabaiga" />
+             
+         <TemplateColumn Filterable="false" Sortable="false">
+             <CellTemplate>
+                 <MudStack Row>
+
+                     @if (context.Item.status_id == 9)
+                        {
+                            <MudButton OnClick="() =>DeclineConfirmation(context.Item.order_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary"> Atšaukti užsakymą</MudButton>
+                            <MudButton OnClick="() =>AllowConfirmation(context.Item.order_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Secondary"> Patvirtinti užsakymą</MudButton>
+                        }
+                        @if (context.Item.status_id == 6)
+                        {
+                         <MudButton OnClick="() =>FinishedConfirmation(context.Item.order_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Tertiary"> Užsakymas Ivykdytas</MudButton>
+                         <MudButton OnClick="() =>DeclineConfirmation(context.Item.order_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary"> Atšaukti užsakymą</MudButton>
+                        }
+                    </MudStack>
+             </CellTemplate>
+         </TemplateColumn>
+
+
+     </Columns>
+
+ </MudDataGrid>
+}
+
+
+
+@code{
+    [Parameter]
+    public int? Id { get; set; }
+
+    private IList<Order> orders = Array.Empty<Order>();
+    private bool getordersError;
+
+    private int selectedorderId;
+    private bool Success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Worker currentloggedin = new();
+        // var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+        // if (retreived.Value is null)
+        // {
+        //     Snackbar.Add("Neprisijunge!", Severity.Error);
+        //     NavigationManager.NavigateTo("login");
+        //     Console.WriteLine("Deserialization failed");
+        // }
+
+        // if (retreived.Value is not null)
+        // {
+        //     currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+        //     if (currentloggedin != null)
+        //     {
+        //         Console.WriteLine("prisijunges vartotojas");
+        //         Console.WriteLine(currentloggedin.worker_id);
+        //     }
+        //     if (currentloggedin.privillege_id == 0)
+        //     {
+        //         Snackbar.Add("Neturite priskirtų Teisių! Kreipkitės į administratorių", Severity.Error);
+        //         NavigationManager.NavigateTo("/");
+        //         Console.WriteLine("neturi teisiu");
+        //     }
+        // }
+        if(Id is not null)
+        {
+
+            try
+            {
+                var response = await Http.GetAsync($"http://localhost:5049/api/Users/{Id}/Orders");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<IList<Order>>();
+                    orders = result;
+                }
+                else
+                {
+                    getordersError = true;
+                }
+
+
+            }
+            catch (Exception)
+            {
+                getordersError = true;
+            }
+        }
+        else
+        {
+            try
+            {
+                var response = await Http.GetAsync("http://localhost:5049/api/Orders");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<IList<Order>>();
+                    orders = result;
+                    for(int i =0 ; i< orders.Count; i++)
+                    {
+                        if (orders[i].status_id != 9 && orders[i].status_id != 14 && orders[i].status_id != 6 && orders[i].status_id != 7)
+                        {
+                            orders.RemoveAt(i);
+                            i--;
+                        }
+
+                    }
+                }
+                else
+                {
+                    getordersError = true;
+                }
+
+
+            }
+            catch (Exception)
+            {
+                getordersError = true;
+            }
+        }
+
+        StateHasChanged();
+
+    }
+
+    private async void AllowOrder(int id)
+    {
+        Order Result = new();
+        Transport TransportFromOrder = new();
+
+        Result = GetOrderByOrderId(orders, id);
+
+        if(Result is not null)
+        {
+            TransportFromOrder = Result.Transport;
+
+            await ChangeStatusOfOrder(6, Result);
+        }
+
+
+    }
+
+    private async void DeclineOrder(int id)
+    {
+        //change order status_id
+        Order Result = new();
+        Transport TransportFromOrder = new();
+
+        Result = GetOrderByOrderId(orders, id);
+
+        if (Result is not null)
+        {
+            TransportFromOrder = Result.Transport;
+
+            await ChangeStatusOfOrder(14, Result);
+
+            //change transport status back to available
+
+            if (Success)
+            {
+                ChangeStatusOfTransport(1, TransportFromOrder);
+                Success = false;
+            }
+        }
+
+    }
+
+    private async void FinishOrder(int id)
+    {
+        //change order status_id to finished
+        Order Result = new();
+        Transport TransportFromOrder = new();
+
+        Result = GetOrderByOrderId(orders, id);
+
+        if (Result is not null)
+        {
+            TransportFromOrder = Result.Transport;
+
+            await ChangeStatusOfOrder(7, Result);
+
+            //change transport status back to 'needing inspection'
+
+            if (Success)
+            {
+                ChangeStatusOfTransport(8, TransportFromOrder);
+                Success = false;
+            }
+        }
+
+    }
+
+    private Order GetOrderByOrderId(IList<Order> orderslist, int order_id)
+    {
+
+        for (int i = 0; i < orderslist.Count; i++)
+        {
+            if (orderslist[i].order_id == order_id)
+            {
+                return orderslist[i];
+            }
+        }
+
+        return null;
+    }
+    private async Task ChangeStatusOfOrder(int status_id, Order selectedorder)
+    {
+
+        selectedorder.status_id = status_id;
+
+        var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/Orders/{selectedorder.order_id}", selectedorder);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            // transport updated successfully
+            var successMessage = await response.Content.ReadAsStringAsync();
+            // Handle the success case or display the success message
+            Console.WriteLine($"Success: {successMessage}");
+            Snackbar.Add("Sėkmingai atnaujinta užsakymo būsena", Severity.Success);
+            Success = true;
+        }
+        else
+        {
+            // Handle the case where the update was not successful
+            var errorMessage = await response.Content.ReadAsStringAsync();
+            // You can access the response content, status code, etc. for more details
+            Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+            // Handle the error as needed
+            Snackbar.Add("Įvyko klaida atnaujinant užsakymo būseną", Severity.Error);
+            Success = false;
+        }
+    }
+
+    private async Task ChangeStatusOfTransport(int status_id, Transport selectedtransport)
+    {
+
+        selectedtransport.status_id = status_id;
+
+        var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/Transport/{selectedtransport.transport_id}", selectedtransport);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            // transport updated successfully
+            var successMessage = await response.Content.ReadAsStringAsync();
+            // Handle the success case or display the success message
+            Console.WriteLine($"Success: {successMessage}");
+            Snackbar.Add("Sėkmingai atnaujinta transporto būsena", Severity.Success);
+            
+        }
+        else
+        {
+            // Handle the case where the update was not successful
+            var errorMessage = await response.Content.ReadAsStringAsync();
+            // You can access the response content, status code, etc. for more details
+            Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+            // Handle the error as needed
+            Snackbar.Add("Įvyko klaida atnaujinant transporto būseną", Severity.Error);
+        }
+    }
+
+    private async void DeclineConfirmation(int orderid)
+    {
+        selectedorderId = orderid;
+        var parameters = new DialogParameters<DialogEdit>();
+        parameters.Add(x => x.ContentText, "Ar tikrai norite atmesti rezervaciją ?");
+        parameters.Add(x => x.ButtonText, "Atmesti");
+        parameters.Add(x => x.Color, Color.Error);
+
+        var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+        var result = await DialogService.Show<DialogEdit>("Rezervacijos atmetimas", parameters, options).Result;
+
+        if (result.Canceled)
+        {
+            Console.WriteLine("canceled");
+
+        }
+        else
+        {
+            DeclineOrder(selectedorderId);
+        }
+    }
+    private async void AllowConfirmation(int orderid)
+    {
+        selectedorderId = orderid;
+        var parameters = new DialogParameters<DialogEdit>();
+        parameters.Add(x => x.ContentText, "Ar tikrai norite patvirtinti rezervaciją ?");
+        parameters.Add(x => x.ButtonText, "patvirtinti");
+        parameters.Add(x => x.Color, Color.Error);
+
+        var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+        var result = await DialogService.Show<DialogEdit>("Rezervacijos patvirtinimas", parameters, options).Result;
+
+        if (result.Canceled)
+        {
+            Console.WriteLine("canceled");
+
+        }
+        else
+        {
+            AllowOrder(selectedorderId);
+        }
+    }
+
+    private async void FinishedConfirmation(int orderid)
+    {
+        selectedorderId = orderid;
+        var parameters = new DialogParameters<DialogEdit>();
+        parameters.Add(x => x.ContentText, "Ar užsakymas pilnai įvykdytas ir klientas gražino transportą ?");
+        parameters.Add(x => x.ButtonText, "patvirtinti");
+        parameters.Add(x => x.Color, Color.Error);
+
+        var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+        var result = await DialogService.Show<DialogEdit>("Užsakymo užbaigimas", parameters, options).Result;
+
+        if (result.Canceled)
+        {
+            Console.WriteLine("canceled");
+
+        }
+        else
+        {
+            FinishOrder(selectedorderId);
+        }
+    }
+
+
+}

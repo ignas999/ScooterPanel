@@ -1,0 +1,110 @@
+﻿@page "/clients"
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+<h3>Klientų sąrašas</h3>
+
+@if (getUsersError || Users is null)
+{
+    <p>Unable to get clients from api.</p>
+}
+else
+{
+
+    <MudDataGrid Items="@Users" Filterable="true" FilterMode="@DataGridFilterMode.ColumnFilterRow">
+        <Columns>
+            <PropertyColumn Property="p => p.user_id" Filterable="false" Title="ID" />
+            <PropertyColumn Property="p => p.username" Title="Slapyvardis" />
+            <PropertyColumn Property="p => p.email" Title="Email" />
+            <PropertyColumn Property="p => p.phone" Title="Kontaktiniai duomenys" />
+            <TemplateColumn CellClass="d-flex justify-end" Filterable="false" Sortable="false">
+                <CellTemplate>
+                    <MudStack Row>
+
+                    
+                     <MudButton OnClick="() =>EditBalance(context.Item.user_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Secondary">Keisti balansą</MudButton>
+                     <MudButton OnClick="() =>ShowOrdersOfUser(context.Item.user_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Kliento užsakymai</MudButton>
+
+
+                 </MudStack>
+             </CellTemplate>
+         </TemplateColumn>
+
+
+     </Columns>
+
+ </MudDataGrid>
+}
+
+@code {
+    private ICollection<User>? Users = Array.Empty<User>();
+    private bool getUsersError;
+    private bool _isCellEditMode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Worker currentloggedin = new();
+        var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+        if (retreived.Value is null)
+        {
+            Snackbar.Add("Neprisijunge!", Severity.Error);
+            NavigationManager.NavigateTo("login");
+            Console.WriteLine("Deserialization failed");
+        }
+
+        if (retreived.Value is not null)
+        {
+            currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+            if (currentloggedin != null)
+            {
+                Console.WriteLine("prisijunges vartotojas");
+                Console.WriteLine(currentloggedin.worker_id);
+            }
+            if (currentloggedin.privillege_id == 0)
+            {
+                Snackbar.Add("Neturite priskirtų Teisių! Kreipkitės į administratorių", Severity.Error);
+                NavigationManager.NavigateTo("/");
+                Console.WriteLine("neturi teisiu");
+            }
+        }
+        try
+        {
+            var response = await Http.GetAsync("http://localhost:5049/api/Users/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ICollection<User>>();
+                Users = result;
+            }
+            else
+            {
+                getUsersError = true;
+            }
+
+
+        }
+        catch (Exception)
+        {
+            getUsersError = true;
+        }
+
+    }
+
+
+
+    private void EditBalance(int id)
+    {
+        NavigationManager.NavigateTo($"/Balance/{id}");
+    }
+
+    private void ShowOrdersOfUser(int id)
+    {
+        NavigationManager.NavigateTo($"/orders/user/{id}");
+    }
+
+
+
+}
+
+

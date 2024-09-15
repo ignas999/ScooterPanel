@@ -1,0 +1,195 @@
+﻿@page "/location"
+@page "/location/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+
+@if (Id is null)
+{
+	<PageTitle> Sukurti Punkta</PageTitle>
+	<h3>Sukurti Punkta</h3>
+}
+else
+{
+	<PageTitle> Redaguoti Punkta </PageTitle>
+	<h3>Redaguoti Punkta @location.city @location.street</h3>
+}
+
+<EditForm Model="@location" OnSubmit="@HandleSubmit" FormName="location">
+
+
+	<MudTextField @bind-Value="@location.street" Label="Gatvė" Variant="Variant.Outlined" Required="true"></MudTextField>
+	<MudTextField @bind-Value="@location.city" Label="Miestas" Variant="Variant.Outlined" Required="true"></MudTextField>
+	<MudTextField @bind-Value="@location.capacity" Label="Vietų skaičius" Variant="Variant.Outlined" Required="true"></MudTextField>
+	<MudTimePicker @bind-Value="@location.opens_at" @bind-Time="timestart" Label="Atidarymo Laikas" Variant="Variant.Outlined" Required="true"></MudTimePicker>
+	<MudTimePicker @bind-Value="@location.closes_at" @bind-Time="timeend" Label="uždarymo Laikas" Variant="Variant.Outlined" Required="true"></MudTimePicker>
+	<button type="submit" class="btn btn-primary">Submit</button>
+
+
+	@if (Id is not null)
+	{
+		<MudButton Variant="Variant.Text" Color="Color.Error" OnClick="DeleteConfirmation">Delete</MudButton>
+	}
+</EditForm>
+
+
+
+@code {
+	[Parameter]
+	public int? Id { get; set; }
+	Location location = new Location();
+	TimeSpan? timestart = new TimeSpan(00, 00, 00);
+	TimeSpan? timeend = new TimeSpan(00, 00, 00);
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (Id is not null)
+		{
+			var response = await Http.GetAsync($"http://localhost:5049/api/locations/{Id}");
+
+			var successMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"message: {successMessage}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<Location>();
+				location = result;
+				timestart = result.opens_at.ToTimeSpan();
+				timeend = result.closes_at.ToTimeSpan();
+
+			}
+
+
+
+		}
+
+
+	}
+
+
+	public void GoBackToList()
+	{
+		NavigationManager.NavigateTo("/locations");
+	}
+
+	async Task DeleteRecord()
+	{
+		var response = await Http.DeleteAsync($"http://localhost:5049/api/locations/{Id}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var successMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Success: {successMessage}");
+			Snackbar.Add("Įrašas ištrintas", Severity.Success);
+
+			GoBackToList();
+		}
+		else
+		{
+			var errorMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+			Snackbar.Add("Įvyko klaida ištrintant įrašą", Severity.Error);
+		}
+	}
+
+	private async void DeleteConfirmation()
+	{
+		var parameters = new DialogParameters<DialogEdit>();
+		parameters.Add(x => x.ContentText, "Ar tikrai norite ištrinti šį įrašą?");
+		parameters.Add(x => x.ButtonText, "Ištrinti");
+		parameters.Add(x => x.Color, Color.Error);
+
+		var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+		var result = await DialogService.Show<DialogEdit>("Ištrynimo patvirtinimas", parameters, options).Result;
+
+		if (result.Canceled)
+		{
+			Console.WriteLine("canceled");
+
+		}
+		else
+		{
+			DeleteRecord();
+		}
+	}
+
+
+
+	async Task HandleSubmit()
+	{
+		location.opens_at = TimeOnly.FromTimeSpan((TimeSpan)timestart);
+		location.closes_at = TimeOnly.FromTimeSpan((TimeSpan)timeend);
+		if (Id is null)
+		{
+			//If there is no id in the link , that means is a create request
+
+			Console.Write(JsonSerializer.Serialize(location));
+
+
+
+			var response = await Http.PostAsJsonAsync("http://localhost:5049/api/locations/", location);
+
+			if (response.IsSuccessStatusCode)
+			{
+				// location updated successfully
+				var successMessage = await response.Content.ReadAsStringAsync();
+				// Handle the success case or display the success message
+				Console.WriteLine($"Success: {successMessage}");
+				Snackbar.Add("Sėkmingai pridėtas įrašas", Severity.Success);
+				GoBackToList();
+			}
+			else
+			{
+				// Handle the case where the update was not successful
+				var errorMessage = await response.Content.ReadAsStringAsync();
+				// You can access the response content, status code, etc. for more details
+				Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+				// Handle the error as needed
+				Snackbar.Add("Įvyko klaida pridedant įrašą", Severity.Error);
+			}
+		}
+		else
+		{
+			var parameters = new DialogParameters<DialogEdit>();
+			parameters.Add(x => x.ContentText, "Ar tikrai norite atlikti pakeitimus ?");
+			parameters.Add(x => x.ButtonText, "Patvirtinti");
+			parameters.Add(x => x.Color, Color.Warning);
+
+			var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+			var result = await DialogService.Show<DialogEdit>("Redagavimo patvirtinimas", parameters, options).Result;
+
+			if (result.Canceled)
+			{
+				Console.WriteLine("canceled");
+
+			}
+			else
+			{
+				var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/locations/{Id}", location);
+
+				if (response.IsSuccessStatusCode)
+				{
+					// location updated successfully
+					var successMessage = await response.Content.ReadAsStringAsync();
+					// Handle the success case or display the success message
+					Console.WriteLine($"Success: {successMessage}");
+					Snackbar.Add("Sėkmingai redaguotas įrašas", Severity.Success);
+				}
+				else
+				{
+					// Handle the case where the update was not successful
+					var errorMessage = await response.Content.ReadAsStringAsync();
+					// You can access the response content, status code, etc. for more details
+					Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+					// Handle the error as needed
+					Snackbar.Add("Įvyko klaida redaguojant įrašą", Severity.Error);
+				}
+			}
+
+		}
+	}
+}

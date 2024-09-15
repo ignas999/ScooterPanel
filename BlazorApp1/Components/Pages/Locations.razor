@@ -1,0 +1,104 @@
+﻿@page "/locations"
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+
+<h3>Darbo punktų sąrašas</h3>
+
+@if (getlocationsError || locations is null)
+{
+    <p>Unable to get locations from api.</p>
+}
+else
+{
+    <MudButton Variant="Variant.Filled" OnClick="AddLocations">Pridėti</MudButton>
+
+    <MudDataGrid Items="@locations" Filterable="true" FilterMode="@DataGridFilterMode.ColumnFilterRow">
+        <Columns>
+
+            <PropertyColumn Property="p => p.location_id" Filterable="false" Title="ID" />
+            <PropertyColumn Property="p => p.city + ' ' + p.street" Title="Adresas" />
+            <PropertyColumn Property="p => p.capacity" Title="Visos Vietos" />
+            <PropertyColumn Property="p => p.opens_at.ToString() +'-'+ p.closes_at.ToString()" Title="Darbo laikas" />
+            <TemplateColumn CellClass="d-flex justify-end" Filterable="false" Sortable="false">
+                <CellTemplate>
+                    <MudStack Row>
+
+                     <MudButton OnClick="() =>EditLocations(context.Item.location_id)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Edit</MudButton>
+
+
+                 </MudStack>
+             </CellTemplate>
+         </TemplateColumn>
+
+
+     </Columns>
+
+ </MudDataGrid>
+}
+
+@code {
+    private ICollection<Location>? locations = Array.Empty<Location>();
+    private bool getlocationsError;
+    private bool _isCellEditMode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Worker currentloggedin = new();
+        var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+        if (retreived.Value is null)
+        {
+            Snackbar.Add("Neprisijunge!", Severity.Error);
+            NavigationManager.NavigateTo("login");
+            Console.WriteLine("Deserialization failed");
+        }
+
+        if (retreived.Value is not null)
+        {
+            currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+            if (currentloggedin != null)
+            {
+                Console.WriteLine("prisijunges vartotojas");
+                Console.WriteLine(currentloggedin.worker_id);
+            }
+            if (currentloggedin.privillege_id != 2)
+            {
+                Snackbar.Add("Neturite Admin Teisių!", Severity.Error);
+                NavigationManager.NavigateTo("/");
+                Console.WriteLine("neturi teisiu");
+            }
+        }
+        try
+        {
+            var response = await Http.GetAsync("http://localhost:5049/api/Locations/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ICollection<Location>>();
+                locations = result;
+            }
+            else
+            {
+                getlocationsError = true;
+            }
+
+
+        }
+        catch (Exception)
+        {
+            getlocationsError = true;
+        }
+
+    }
+
+    private void AddLocations()
+    {
+        NavigationManager.NavigateTo("/location");
+    }
+
+    private void EditLocations(int id)
+    {
+        NavigationManager.NavigateTo($"/location/{id}");
+    }
+}

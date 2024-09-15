@@ -1,0 +1,130 @@
+﻿@page "/maintenances"
+@page "/maintenances/transport/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle> Priežiūros sąrašas</PageTitle>
+<h3>Transporto Priežiūros sąrašas </h3>
+
+
+@if (getmaintenancessError || maintenances is null)
+{
+    <p>Unable to get maintenances from api.</p>
+}
+@if (maintenances.Count == 0)
+{
+    <p>Neturi Užsakymų</p>
+}
+else
+{
+    <MudDataGrid Items="@maintenances" Filterable="true" FilterMode="@DataGridFilterMode.ColumnFilterRow">
+        <Columns>
+            <PropertyColumn Property="p => p.maintenance_id" Filterable="false" Title="ID" />
+            <PropertyColumn Property="p => p.Repair.name" Title="Atlikta Priežiūra" />
+            <PropertyColumn Property="p => p.price.ToString() +'\u20AC'" Title="Sumokėta suma" />
+            <PropertyColumn Property="p => p.Worker.first_name +' '+ p.Worker.last_name" Title="Atsakingas Darbuotojas" />
+            <PropertyColumn Property="p => p.Transport.name" Title="Transporto Pavadinimas" />
+            <PropertyColumn Property="p => p.transport_id" Title="Transporto ID" />
+            <PropertyColumn Property="p => p.mileage" Title="Kilometražas" />
+            <PropertyColumn Property="p => p.date" Title="Atlikimo Data" />
+
+
+        </Columns>
+
+    </MudDataGrid>
+}
+
+
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private IList<Maintenance> maintenances = Array.Empty<Maintenance>();
+    private bool getmaintenancessError;
+
+    private int selectedmaintenancesId;
+    private bool Success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Worker currentloggedin = new();
+        var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+        if (retreived.Value is null)
+        {
+            Snackbar.Add("Neprisijunge!", Severity.Error);
+            NavigationManager.NavigateTo("login");
+            Console.WriteLine("Deserialization failed");
+        }
+
+        if (retreived.Value is not null)
+        {
+            currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+            if (currentloggedin != null)
+            {
+                Console.WriteLine("prisijunges vartotojas");
+                Console.WriteLine(currentloggedin.worker_id);
+            }
+            if (currentloggedin.privillege_id == 0)
+            {
+                Snackbar.Add("Neturite priskirtų Teisių! Kreipkitės į administratorių", Severity.Error);
+                NavigationManager.NavigateTo("/");
+                Console.WriteLine("neturi teisiu");
+            }
+        }
+        if (Id is not null)
+        {
+
+            try
+            {
+                var response = await Http.GetAsync($"http://localhost:5049/api/Transport/{Id}/Maintenances");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<IList<Maintenance>>();
+                    maintenances = result;
+                }
+                else
+                {
+                    getmaintenancessError = true;
+                }
+
+
+            }
+            catch (Exception)
+            {
+                getmaintenancessError = true;
+            }
+        }
+        else
+        {
+            try
+            {
+                var response = await Http.GetAsync($"http://localhost:5049/api/Maintenances");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<IList<Maintenance>>();
+                    maintenances = result;
+                }
+                else
+                {
+                    getmaintenancessError = true;
+                }
+
+
+            }
+            catch (Exception)
+            {
+                getmaintenancessError = true;
+            }
+        }
+
+        StateHasChanged();
+
+    }
+
+
+}

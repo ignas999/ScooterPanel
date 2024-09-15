@@ -1,0 +1,202 @@
+﻿@page "/finances"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle> Finansai valdymas</PageTitle>
+<h3>Finansų išklotinė </h3>
+
+
+@if (getfilesError )
+{
+    <p>Unable to make a list from api.</p>
+}
+else
+{
+    <h3>Pasirinkitę laikotarpį kuriame norite matyti finansus</h3>
+    <InputDate @bind-Value="selected_start_date" />
+    <InputDate @bind-Value="selected_end_date" />
+    <MudButton OnClick="() => LookForFinances(selected_start_date, selected_end_date)" Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Tertiary"> Ieškoti</MudButton>
+
+    <div>
+        <p>Uždarbis tarp @selected_start_date ir @selected_end_date: </p>
+    </div>
+
+
+    if (tmpfinances is not null && tmpfinances.Count>0)
+    {
+        <MudText Color="Color.Success">Uždirbote @earned eur </MudText>
+        <MudText Color="Color.Error">Išleidote @lost eur</MudText>
+        <MudText Color="Color.Warning">Skirtumas @(earned-lost) eur</MudText>
+
+        <MudDataGrid Items="@tmpfinances" Filterable="true" FilterMode="@DataGridFilterMode.ColumnFilterRow">
+            <Columns>
+                <PropertyColumn Property="p => p.amount.ToString() +'\u20AC'" Title="Suma" />
+                <PropertyColumn Property="p => p.description" Title="Priežastis" />
+                <PropertyColumn Property="p => p.dateofaction" Title="Data" />
+
+                <TemplateColumn Filterable="false" Sortable="false">
+                    <CellTemplate>
+                        <MudStack 
+                Row
+                         >
+
+
+                         </MudStack>
+                     </CellTemplate>
+                 </TemplateColumn>
+
+
+             </Columns>
+
+         </MudDataGrid>
+    }
+    else
+    {
+        <p>Neturite jokių Užsakymų įrašų šiuo laikotarpiu </p>
+    }
+}
+
+
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private List<Transaction> transactions = new List<Transaction>();
+    private List<Maintenance> maintenances = new List<Maintenance>();
+    DateTime selected_start_date = DateTime.Now;
+    DateTime selected_end_date = DateTime.Now;
+
+    public double earned;
+    public double lost;
+
+
+    private List<Finances> allfinances = new List<Finances>();
+
+    private List<Finances> tmpfinances = new List<Finances>();
+    bool getfilesError ;
+
+    async Task getTransactionsFromDb()
+    {
+        try
+        {
+            var response = await Http.GetAsync("http://localhost:5049/api/transactions/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<List<Transaction>>();
+                transactions = result;
+            }
+            else
+            {
+                getfilesError = true;
+            }
+
+
+        }
+        catch (Exception)
+        {
+            getfilesError = true;
+        }
+    }
+    async Task getRepairsFromDb()
+    {
+        try
+        {
+            var response = await Http.GetAsync("http://localhost:5049/api/maintenances/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<List<Maintenance>>();
+                maintenances = result;
+            }
+            else
+            {
+                getfilesError = true;
+            }
+
+
+        }
+        catch (Exception)
+        {
+            getfilesError = true;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await getTransactionsFromDb();
+        await getRepairsFromDb();
+
+        MergeToOneList(maintenances, transactions);
+
+    }
+
+    public async Task MergeToOneList(List<Maintenance> maintenances1, List<Transaction> transactions1)
+    {
+
+        foreach (Maintenance item in maintenances1)
+        {
+            Finances temp = new Finances(item.price, item.date, item.Repair.name);
+            allfinances.Add(temp);
+
+        } 
+        foreach(Transaction item in transactions1)
+        {
+            Finances temp = new Finances(item.amount, item.date, "Kliento Mokėjimas");
+            allfinances.Add(temp);
+        }
+
+        foreach (Finances Items in allfinances)
+        {
+            Console.WriteLine($"{Items.amount} , {Items.dateofaction}, {Items.description}");
+        }
+
+
+    }
+
+
+    public void LookForFinances(DateTime startdate, DateTime enddate)
+    {
+        lost = 0;
+        earned = 0;
+
+        if(tmpfinances.Count> 0)
+        {
+            tmpfinances.Clear();
+        }
+
+        for (int i = 0; i < allfinances.Count; i++)
+        {
+            DateTime dateofitemconverted = DateTime.Parse(allfinances[i].dateofaction);
+            if (dateofitemconverted >= startdate && dateofitemconverted <= enddate)
+            {
+                tmpfinances.Add(allfinances[i]);
+            }
+
+        }
+
+        foreach (Finances item in tmpfinances)
+        {
+
+            if (item.description != "Kliento Mokėjimas")
+            {
+                lost += item.amount;
+            }
+            else
+            {
+                earned += item.amount;
+            }
+        }
+
+       
+
+        
+    }
+
+
+
+
+}

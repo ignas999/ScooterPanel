@@ -1,0 +1,67 @@
+﻿<MudNavMenu>
+	@if (showUserFunctions)
+	{
+		<MudNavLink Href="/" Match="NavLinkMatch.All">Pagrindinis</MudNavLink>
+		<MudNavLink Href="/orders" Match="NavLinkMatch.Prefix">Užsakymų valdymas</MudNavLink>
+		<MudNavLink Href="/clients" Match="NavLinkMatch.Prefix">Klientų valdymas</MudNavLink>
+		<MudNavLink Href="/transportssimple" Match="NavLinkMatch.Prefix">Transportų informacija ir Priežiūra</MudNavLink>
+	}
+	@if(showAdminFunctions){
+		<MudNavGroup Title="Administratoriaus Valdymas" Expanded="true">
+			<MudNavLink Href="/Categories" Match="NavLinkMatch.Prefix">Kategorijų valdymas</MudNavLink>
+			<MudNavLink Href="/locations" Match="NavLinkMatch.Prefix">Punktų valdymas</MudNavLink>
+			<MudNavLink Href="/workers" Match="NavLinkMatch.Prefix">Darbuotojų valdymas</MudNavLink>
+			<MudNavLink Href="/transports" Match="NavLinkMatch.Prefix">Transportų valdymas</MudNavLink>
+			<MudNavLink Href="/finances" Match="NavLinkMatch.Prefix">Finansų Statistika</MudNavLink>
+		</MudNavGroup>
+	}
+
+</MudNavMenu>
+
+@code{
+	private bool showAdminFunctions;
+	private bool showUserFunctions;
+	protected override async Task OnInitializedAsync()
+	{
+		Worker currentloggedin = new();
+		//worker logic to get current worker to check if logged in
+		var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+		try
+		{
+			currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+		}
+		catch (Exception ex)
+		{
+
+		}
+		if (currentloggedin != null)
+		{
+			Console.WriteLine("Deserialization successful");
+		}
+		else
+		{
+			Console.WriteLine("Deserialization failed");
+		}
+
+		if (currentloggedin.worker_id is 0 )
+		{
+			showAdminFunctions = false;
+			showUserFunctions = false;
+		}
+		else if (currentloggedin.worker_id is not 0 && currentloggedin.privillege_id == 2)
+		{
+			//that means a user has logged in and is admin
+			showAdminFunctions = true;
+			showUserFunctions = true;
+		}
+		else if (currentloggedin.worker_id is not 0 && currentloggedin.privillege_id == 1)
+		{
+			//that means a user has logged in but is a regular worker
+			showAdminFunctions = false;
+			showUserFunctions = true;
+		}
+		
+
+
+	}
+}

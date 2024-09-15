@@ -1,0 +1,115 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = BlazorApp1
+build_property.RootNamespace = BlazorApp1
+build_property.ProjectDir = D:\Desktop\C#\antraskursas\BlazorApp1\BlazorApp1\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = D:\Desktop\C#\antraskursas\BlazorApp1\BlazorApp1
+build_property._RazorSourceGeneratorDebug = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/DialogEdit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xEaWFsb2dFZGl0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Categories.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDYXRlZ29yaWVzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Clients.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDbGllbnRzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Error.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/FinansesList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xGaW5hbnNlc0xpc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Locations.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2NhdGlvbnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/MaintenancesList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYWludGVuYW5jZXNMaXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/ManageBalance.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYW5hZ2VCYWxhbmNlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/ManageCategory.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYW5hZ2VDYXRlZ29yeS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/ManageLocation.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYW5hZ2VMb2NhdGlvbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/ManageTransport.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYW5hZ2VUcmFuc3BvcnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/ManageWorker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNYW5hZ2VXb3JrZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/OrdersList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xPcmRlcnNMaXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/RepairAdd.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBhaXJBZGQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/TransportsAdminList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xUcmFuc3BvcnRzQWRtaW5MaXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/TransportsWorkerList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xUcmFuc3BvcnRzV29ya2VyTGlzdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Pages/Workers.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xXb3JrZXJzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Routes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSb3V0ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-j65y7q72mt
+
+[D:/Desktop/C\#/antraskursas/BlazorApp1/BlazorApp1/Components/Layout/MyNavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTXlOYXZNZW51LnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-v45jtvrv4a

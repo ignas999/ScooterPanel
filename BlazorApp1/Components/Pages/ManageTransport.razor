@@ -1,0 +1,409 @@
+﻿@page "/transport"
+@page "/transport/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+
+@if (Id is null)
+{
+	<PageTitle> Sukurti Transportą</PageTitle>
+	<h3>Sukurti Transportą</h3>
+}
+else
+{
+	<PageTitle> Redaguoti Transportą </PageTitle>
+	<h3>Redaguoti Transportą @transport.name </h3>
+	<MudImage Src=@($"transports/{transport.image}") Alt="image" Class="rounded-lg" Width="100" Height="100" />
+
+}
+
+<EditForm Model="@transport" OnSubmit="@HandleSubmit" FormName="transport">
+
+
+	<MudTextField @bind-Value="@transport.name" Label="Pavadinimas" Variant="Variant.Outlined" Required="true"></MudTextField>
+	<MudTextField @bind-Value="@transport.description" Label="Aprašymas" Variant="Variant.Outlined" Required="true"></MudTextField>
+	<MudNumericField @bind-Value="@transport.rated_power" Label="GalingumasKw" Variant="Variant.Text" Min="0" Max="9999" Required="true" Placeholder="pvz: 10" />
+	<MudNumericField @bind-Value="@transport.max_speed" Label="Leistinas greitis" Variant="Variant.Text" Min="0" Max="999" Required="true" Placeholder="pvz: 20" />
+	<MudNumericField @bind-Value="@transport.distance" Label="Nuvažiuojamas atstumas" Variant="Variant.Text" Min="0" Max="999" Required="true" Placeholder="pvz: 11" />
+	<MudNumericField @bind-Value="@transport.price" Label="Nuomos kaina / val" Variant="Variant.Text" Min="0" Max="999" Required="true" Placeholder="pvz: 1.00" />
+
+	<MudSelect T="int" Label="Kategorijos" @bind-Value="@transport.category_id" AnchorOrigin="Origin.BottomCenter" Required="true">
+		@foreach (var category in categories)
+		{
+			<MudSelectItem Value="@category.category_id">@category.name</MudSelectItem>
+		}
+	</MudSelect>
+	<MudSelect T="int" Label="Saugojimo Vieta" @bind-Value="@transport.location_id" AnchorOrigin="Origin.BottomCenter" Required="true">
+		@foreach (var location in locations)
+		{
+			<MudSelectItem Value="@location.location_id">@location.city @location.street</MudSelectItem>
+		}
+	</MudSelect>
+	<MudSelect T="int" Label="Būsena" @bind-Value="@transport.status_id" AnchorOrigin="Origin.BottomCenter" Required="true">
+		@foreach (var status in statuses)
+		{
+			<MudSelectItem Value="@status.status_id">@status.name</MudSelectItem>
+		}
+	</MudSelect>
+
+	<label for="picture"> Paveikslas:</label>
+	<InputFile OnChange="@Loadfile" class="form-control"  accept = ".png,.jpg,.jpeg" ></InputFile>
+
+
+	<button type="submit" class="btn btn-primary">Submit</button>
+
+
+	@if (Id is not null)
+	{
+		<MudButton Variant="Variant.Text" Color="Color.Error" OnClick="DeleteConfirmation">Delete</MudButton>
+	}
+</EditForm>
+
+
+
+
+@code {
+	[Parameter]
+	public int? Id { get; set; }
+	Transport transport = new Transport();
+	public ICollection<Category> categories = Array.Empty<Category>();
+	public ICollection<Location> locations = Array.Empty<Location>();
+	public ICollection<Status> statuses = Array.Empty<Status>();
+
+
+	// for pictureuploading
+	private long maxFileSize = 1024 * 1024 * 3;
+	private IBrowserFile? file;
+	string newFileName;
+
+	private void  Loadfile(InputFileChangeEventArgs e)
+	{
+		//get file from user and store it in a "file" ibrowser variable
+		file = e.File;
+
+
+	}
+
+	private async Task<string> CaptureFile()
+	{
+		string path = Path.GetFullPath("D:/Desktop/PHPas/realstuff/public/images/transports");
+
+		if (file is null && transport.image is null)
+		{
+			throw new Exception("I threw an exception!");
+			Snackbar.Add("Įvyko klaida ikeliant paveiksla , paliktas tuščias ", Severity.Warning);
+		}
+
+		else if (Path.GetExtension(file.Name) != ".png" &&
+			Path.GetExtension(file.Name) != ".jpg" &&
+			Path.GetExtension(file.Name) != ".jpeg")
+		{
+			Snackbar.Add("Įvyko klaida ikeliant paveiksla , neteisingas paveikslo formatas (.jpg , .png ., jpeg) ", Severity.Warning);
+			throw new Exception("I threw an exception!");
+		}
+
+		try
+		{
+			//create new filename
+			newFileName = Path.ChangeExtension(
+			Path.GetRandomFileName().Replace(".", "") + Path.GetRandomFileName(),
+
+			Path.GetExtension(file.Name));
+
+			string storepath = Path.Combine("D:/Desktop/PHPas/realstuff/public/images/transports",newFileName);
+
+
+			await using FileStream fs = new(storepath, FileMode.Create);
+			await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+
+			transport.image = newFileName;
+
+			return path;
+		}
+		catch (Exception ex)
+		{
+			Snackbar.Add("Įvyko klaida ikeliant paveiksla ", Severity.Error);
+
+			throw new Exception("I threw an exception! ");
+
+		}
+
+
+	}
+	//end of picture uploading functions
+
+	protected override async Task OnInitializedAsync()
+	{
+
+		Worker currentloggedin = new();
+		//worker logic to get current worker needed for maintenance
+		var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+		try
+		{
+			currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+		}
+		catch (Exception ex)
+		{
+
+		}
+		if (currentloggedin != null)
+		{
+			Console.WriteLine("Deserialization successful");
+			Console.WriteLine(currentloggedin.worker_id);
+		}
+		else
+		{
+			Console.WriteLine("Deserialization failed");
+		}
+
+		if (currentloggedin.worker_id is 0)
+			{
+				Snackbar.Add("Neprisijungę!", Severity.Error);
+				NavigationManager.NavigateTo("/");
+			}
+		if (currentloggedin.privillege_id != 2)
+			{
+				Snackbar.Add("Neturite Teisių čia būti!", Severity.Error);
+				NavigationManager.NavigateTo("/");
+			}
+
+
+
+		GetCategories();
+		GetLocations();
+		GetStatuses();
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (Id is not null)
+		{
+			var response = await Http.GetAsync($"http://localhost:5049/api/transport/{Id}");
+
+			var successMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"message: {successMessage}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<Transport>();
+				transport = result;
+
+			}
+
+
+
+		}
+
+
+	}
+
+	async Task GetCategories()
+	{
+		var response = await Http.GetAsync($"http://localhost:5049/api/Categories");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<ICollection<Category>>();
+			categories = result;
+		}
+	}
+
+	async Task GetLocations()
+	{
+		var response = await Http.GetAsync($"http://localhost:5049/api/Locations");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<ICollection<Location>>();
+			locations = result;
+		}
+	}
+	async Task GetStatuses()
+	{
+		var response = await Http.GetAsync($"http://localhost:5049/api/Statuses");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<ICollection<Status>>();
+			statuses = result;
+		}
+	}
+
+	async Task DeleteRecord()
+	{
+		var response = await Http.DeleteAsync($"http://localhost:5049/api/transport/{Id}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var successMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Success: {successMessage}");
+			Snackbar.Add("Įrašas ištrintas", Severity.Success);
+			//delete image from folder
+			DeleteImage(transport.image);
+
+			GoBackToList();
+		}
+		else
+		{
+			var errorMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+			Snackbar.Add("Įvyko klaida ištrintant įrašą", Severity.Error);
+		}
+
+
+
+	}
+
+	private async void DeleteImage(string imagename)
+
+
+	{
+
+		string storepath = Path.Combine("D:/Desktop/PHPas/realstuff/public/images/transports", imagename);
+
+		File.Delete(storepath);
+	}
+
+	private async void DeleteConfirmation()
+	{
+		var parameters = new DialogParameters<DialogEdit>();
+		parameters.Add(x => x.ContentText, "Ar tikrai norite ištrinti šį įrašą?");
+		parameters.Add(x => x.ButtonText, "Ištrinti");
+		parameters.Add(x => x.Color, Color.Error);
+
+		var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+		var result = await DialogService.Show<DialogEdit>("Ištrynimo patvirtinimas", parameters, options).Result;
+
+		if (result.Canceled)
+		{
+			Console.WriteLine("canceled");
+
+		}
+		else
+		{
+			DeleteRecord();
+		}
+	}
+
+	public void GoBackToList()
+	{
+		NavigationManager.NavigateTo("/transports");
+	}
+
+	async Task HandleSubmit()
+	{
+
+		if (transport.status_id == 0 || transport.location_id == 0 || transport.category_id == 0 || transport.description == null || transport.name == null)
+		{
+			Snackbar.Add("Palikote neužpildytus pasirenkamuosius laukus!", Severity.Error);
+			return;
+		}
+		if (transport.distance == 0 || transport.price == 0 || transport.max_speed == 0 || transport.rated_power == 0 )
+		{
+			Snackbar.Add("Negalite palikti nulių kaip parametrų", Severity.Error);
+			return;
+		}
+
+		if (Id is null)
+		{
+			//If there is no id in the link , that means is a create request
+
+
+			Console.Write(JsonSerializer.Serialize(transport));
+
+			try
+			{
+				string imagepath = await CaptureFile();
+				transport.image = newFileName;
+
+			}
+			catch (Exception ex)
+			{
+				Snackbar.Add("Įvyko klaida keliant paveiksla", Severity.Error);
+				return;
+			}
+
+			var response = await Http.PostAsJsonAsync("http://localhost:5049/api/transport/", transport);
+
+			if (response.IsSuccessStatusCode)
+			{
+
+				// transport updated successfully
+				var successMessage = await response.Content.ReadAsStringAsync();
+				// Handle the success case or display the success message
+				Console.WriteLine($"Success: {successMessage}");
+				Snackbar.Add("Sėkmingai pridėtas įrašas", Severity.Success);
+				GoBackToList();
+			}
+			else
+			{
+				// Handle the case where the update was not successful
+				var errorMessage = await response.Content.ReadAsStringAsync();
+				// You can access the response content, status code, etc. for more details
+				Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+				// Handle the error as needed
+				Snackbar.Add("Įvyko klaida pridedant įrašą", Severity.Error);
+			}
+		}
+		else
+		{
+			var parameters = new DialogParameters<DialogEdit>();
+			parameters.Add(x => x.ContentText, "Ar tikrai norite atlikti pakeitimus ?");
+			parameters.Add(x => x.ButtonText, "Patvirtinti");
+			parameters.Add(x => x.Color, Color.Warning);
+
+			var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+			var result = await DialogService.Show<DialogEdit>("Redagavimo patvirtinimas", parameters, options).Result;
+
+			if (result.Canceled)
+			{
+				Console.WriteLine("canceled");
+
+			}
+			else
+			{
+				if (file is not null)
+				{
+					try
+					{
+						string imagepath = await CaptureFile();
+						transport.image = newFileName;
+
+					}
+					catch (Exception ex)
+					{
+						Snackbar.Add("Įvyko klaida keliant paveiksla", Severity.Error);
+						return;
+					}
+				}
+				var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/transport/{Id}", transport);
+
+				if (response.IsSuccessStatusCode)
+				{
+					// transport updated successfully
+					var successMessage = await response.Content.ReadAsStringAsync();
+					// Handle the success case or display the success message
+					Console.WriteLine($"Success: {successMessage}");
+					Snackbar.Add("Sėkmingai redaguotas įrašas", Severity.Success);
+				}
+				else
+				{
+					// Handle the case where the update was not successful
+					var errorMessage = await response.Content.ReadAsStringAsync();
+					// You can access the response content, status code, etc. for more details
+					Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+					// Handle the error as needed
+					Snackbar.Add("Įvyko klaida redaguojant įrašą", Severity.Error);
+				}
+			}
+
+		}
+	}
+
+
+}

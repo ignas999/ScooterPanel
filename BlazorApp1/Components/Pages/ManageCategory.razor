@@ -1,0 +1,161 @@
+﻿@page "/category"
+@page "/category/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+
+@if(Id is null)
+{
+	<PageTitle> Sukurti Kategorija</PageTitle>
+	<h3>Sukurti Kategoriją</h3>
+}
+else
+{
+	<PageTitle> Redaguoti Kategorija </PageTitle>
+	<h3>Redaguoti Kategoriją @category.name</h3>
+}
+
+<EditForm Model="@category" OnSubmit="@HandleSubmit" FormName="category">
+	<MudTextField @bind-Value="@category.name" Label="Kategorijos pavadinimas" Variant="Variant.Outlined" Required="true"></MudTextField>
+
+	<button type="submit" class="btn btn-primary">Submit</button>
+
+	@if(Id is not null)
+	{
+		<MudButton Variant="Variant.Text" Color="Color.Error" OnClick="DeleteConfirmation">Delete</MudButton>
+	}
+</EditForm>
+
+
+
+@code {
+	[Parameter]
+	public int? Id { get; set; }
+	Category category = new Category();
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (Id is not null)
+		{
+			var response = await Http.GetAsync($"http://localhost:5049/api/Categories/{Id}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<Category>();
+				category = result;
+			}
+
+		}
+
+
+	}
+
+	public void GoBackToList()
+	{
+		NavigationManager.NavigateTo("/categories");
+	}
+
+	async Task DeleteRecord()
+	{
+		var response = await Http.DeleteAsync($"http://localhost:5049/api/Categories/{Id}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var successMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Success: {successMessage}");
+			Snackbar.Add("Įrašas ištrintas", Severity.Success);
+			GoBackToList();
+		}
+		else
+		{
+			var errorMessage = await response.Content.ReadAsStringAsync();
+			Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+			Snackbar.Add("Įvyko klaida ištrintant įrašą", Severity.Error);
+		}
+
+
+	}
+
+	private async void DeleteConfirmation()
+	{
+		var parameters = new DialogParameters<DialogEdit>();
+		parameters.Add(x => x.ContentText, "Ar tikrai norite ištrinti šį įrašą?");
+		parameters.Add(x => x.ButtonText, "Ištrinti");
+		parameters.Add(x => x.Color, Color.Error);
+
+		var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+		var result = await DialogService.Show<DialogEdit>("Ištrynimo patvirtinimas", parameters, options).Result;
+
+		if(result.Canceled)
+		{
+			Console.WriteLine("canceled");
+
+		}
+		else
+		{
+			DeleteRecord();
+
+		}
+	}
+
+	async Task HandleSubmit()
+	{
+		if(Id is null)
+		{
+			//If there is no id in the link , that means is a create request
+
+			Console.Write(JsonSerializer.Serialize(category));
+
+
+			var response = await Http.PostAsJsonAsync("http://localhost:5049/api/Categories/", category);
+
+			if (response.IsSuccessStatusCode)
+			{
+				// Category updated successfully
+				var successMessage = await response.Content.ReadAsStringAsync();
+				// Handle the success case or display the success message
+				Console.WriteLine($"Success: {successMessage}");
+				Snackbar.Add("Sėkmingai pridėtas įrašas", Severity.Success);
+				GoBackToList();
+			}
+			else
+			{
+				// Handle the case where the update was not successful
+				var errorMessage = await response.Content.ReadAsStringAsync();
+				// You can access the response content, status code, etc. for more details
+				Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+				// Handle the error as needed
+				Snackbar.Add("Įvyko klaida pridedant įrašą", Severity.Error);
+			}
+
+		}
+		else
+		{
+
+
+			var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/Categories/{Id}", category);
+			
+			if (response.IsSuccessStatusCode)
+			{
+				// Category updated successfully
+				var successMessage = await response.Content.ReadAsStringAsync();
+				// Handle the success case or display the success message
+				Console.WriteLine($"Success: {successMessage}");
+				Snackbar.Add("Sėkmingai redaguotas įrašas", Severity.Success);
+			}
+			else
+			{
+				// Handle the case where the update was not successful
+				var errorMessage = await response.Content.ReadAsStringAsync();
+				// You can access the response content, status code, etc. for more details
+				Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+				// Handle the error as needed
+				Snackbar.Add("Įvyko klaida redaguojant įrašą", Severity.Error);
+			}
+		}
+	}
+}

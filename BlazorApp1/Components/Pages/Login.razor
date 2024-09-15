@@ -1,0 +1,103 @@
+﻿@page "/login"
+@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Threading.Tasks
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+
+
+<h3>Prisijungimas prie sistemos</h3>
+<EditForm Model="@workerinfo" OnSubmit="@LoginUser" FormName="workerinfo">
+    <MudTextField @bind-Value="@workerinfo.username" Label="Prisijungimo Vardas" Variant="Variant.Outlined" Required="true"></MudTextField>
+    <MudTextField @bind-Value="@workerinfo.password" Label="Slaptažodis" Variant="Variant.Outlined" Required="true" InputType="InputType.Password"></MudTextField>
+    <button type="submit" class="btn btn-primary">Prisijungti</button>
+</EditForm>
+
+
+
+
+
+@code {
+    private WorkerLogin workerinfo = new();
+    private Worker workerinfofromdb = new Worker();
+
+    
+
+    private async Task LoginUser()
+    {
+
+        var apiEndpoint = "http://localhost:5049/api/Workers/login";
+
+
+        var response = await Http.PostAsJsonAsync(apiEndpoint, workerinfo);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            var result = await response.Content.ReadAsStringAsync();
+            Console.WriteLine("result of our json in text/string");
+            Console.WriteLine(result);
+
+
+            // var body = JsonSerializer.Deserialize<Worker>(result);
+            // Console.WriteLine(body);
+            // Console.WriteLine(body.username);
+
+
+            await ProtectedSessionStore.SetAsync("result", result );
+
+
+
+
+            NavigationManager.NavigateTo("/",true);
+            Snackbar.Add("Prisijungta sekmingai", Severity.Success);
+        }
+        else
+        {
+            // Handle login failure
+            Snackbar.Add("Blogai suvesti duomenys !", Severity.Error);
+            Console.WriteLine("Login failed");
+        }
+    }
+
+    // private async Task<bool> Authenticate(string username, string password, string apiEndpoint)
+    // {
+    //     try
+    //     {
+
+    //         var response = await Http.PostAsJsonAsync(apiEndpoint, workerinfo);
+
+    //         Console.WriteLine("we did our post");
+
+    //         if (response.IsSuccessStatusCode)
+    //         {
+    //             Console.WriteLine("response was good status code");
+    //             var result= response.Content.ReadAsStringAsync();
+
+    //             Console.WriteLine("result of our json");
+    //             Console.WriteLine(result);
+
+    //             string json = JsonSerializer.Serialize(result);
+
+    //             Console.WriteLine(json);
+    //             await ProtectedSessionStore.SetAsync("user", json);
+
+    //             return true;
+    //         }
+    //         else
+    //         {
+    //             return false;
+    //         }
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"Exception: {ex.Message}");
+    //         return false;
+    //     }
+    // }
+}

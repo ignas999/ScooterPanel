@@ -1,0 +1,227 @@
+﻿@page "/maintenances/add/transport/{Id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+<PageTitle> Naujas Priežiūros sukūrimas</PageTitle>
+<h3>Pridėti naują priežiūros įrašą transportui @transport.name </h3>
+
+<EditForm Model="@currentMaintenance" OnSubmit="@HandleSubmit" FormName="currentMaintenance">
+
+
+	<MudSelect T="int" Label="Atliktas Darbas" @bind-Value="@currentMaintenance.repair_id" AnchorOrigin="Origin.BottomCenter" Required="true">
+		@foreach (var repair in repairs)
+		{
+			<MudSelectItem Value="@repair.repair_id">@repair.name</MudSelectItem>
+		}
+	</MudSelect>
+
+	<MudNumericField @bind-Value="@currentMaintenance.price" Label="Patikros Kaina" Variant="Variant.Text" Min="0" Max="3000" Required="true" Placeholder="pvz: 1.00" />
+	<MudNumericField @bind-Value="@currentMaintenance.mileage" Label="Transporto Priemonės Kilometražas patikros metu:" Variant="Variant.Text" Min="0" Max="3000" Required="true" Placeholder="pvz: 1.00" />
+	
+	<InputDate @bind-Value="selecteddate" />
+	<button type="submit" class="btn btn-primary">Submit</button>
+
+
+	@* 	@if (Id is not null)
+	{
+	<MudButton Variant="Variant.Text" Color="Color.Error" OnClick="DeleteConfirmation">Delete</MudButton>
+	} *@
+</EditForm>
+
+
+
+@code {
+
+	[Parameter]
+	public int Id { get; set; }
+	public Maintenance currentMaintenance = new();
+	public ICollection<Repair> repairs = Array.Empty<Repair>();
+	public Transport transport = new();
+	DateTime selecteddate = DateTime.Now;
+	Worker currentloggedin = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		
+		//worker logic to get current worker needed for maintenance
+		var retreived = await ProtectedSessionStore.GetAsync<string>("result");
+		try
+		{
+			currentloggedin = JsonSerializer.Deserialize<Worker>(retreived.Value);
+		}
+		catch(Exception ex)
+		{
+
+		}
+		if (currentloggedin != null)
+		{
+			Console.WriteLine("Deserialization successful");
+			Console.WriteLine(currentloggedin.worker_id);
+		}
+		else
+		{
+			Console.WriteLine("Deserialization failed");
+		}
+
+		//end of worker logic
+		checkauthorisation(currentloggedin);
+
+
+		GetRepairs();
+
+
+	}
+	public void checkauthorisation(Worker currentWorker)
+	{
+		if (currentWorker.worker_id is 0)
+		{
+			Snackbar.Add("Neprisijunge!", Severity.Error);
+			NavigationManager.NavigateTo("/login");
+		}
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+
+		var response = await Http.GetAsync($"http://localhost:5049/api/transport/{Id}");
+
+		var successMessage = await response.Content.ReadAsStringAsync();
+		Console.WriteLine($"message: {successMessage}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<Transport>();
+			transport = result;
+
+		}
+
+	}
+
+
+
+
+
+
+	public void GoBackToList()
+	{
+		NavigationManager.NavigateTo($"/maintenances/transport/{Id}");
+	}
+
+
+	async Task GetRepairs()
+	{
+		var response = await Http.GetAsync($"http://localhost:5049/api/Repairs");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<ICollection<Repair>>();
+			repairs = result;
+		}
+	}
+
+	async Task HandleSubmit()
+	{
+		//string formattedDate = datecurrent.ToString("yyyy-MM-dd");
+		var parameters = new DialogParameters<DialogEdit>();
+		parameters.Add(x => x.ContentText, "Ar tikrai norite įrašyti priežiūros įrašą ?");
+		parameters.Add(x => x.ButtonText, "Patvirtinti");
+		parameters.Add(x => x.Color, Color.Warning);
+
+		var options = new DialogOptions() { CloseButton = false, MaxWidth = MaxWidth.Medium };
+
+		var result = await DialogService.Show<DialogEdit>("Remonto patvirtinimas", parameters, options).Result;
+
+		if (result.Canceled)
+		{
+			Console.WriteLine("canceled");
+
+		}
+		else
+		{
+
+			if (currentMaintenance.mileage == 0 || currentMaintenance.price == 0 || currentMaintenance.repair_id == 0)
+			{
+				Snackbar.Add("Palikote neužpildytus laukus! arba palikote 0 reikšmes", Severity.Error);
+				return;
+			}
+			else
+			{
+				//do some setting up before submitting
+				string formattedDate = selecteddate.ToString("yyyy-MM-dd");
+				currentMaintenance.date = formattedDate;
+				currentMaintenance.transport_id = transport.transport_id;
+				currentMaintenance.worker_id = currentloggedin.worker_id;
+
+
+				var response = await Http.PostAsJsonAsync($"http://localhost:5049/api/Maintenances/", currentMaintenance);
+
+				if (response.IsSuccessStatusCode)
+				{
+					// maintenance created successfully
+					var successMessage = await response.Content.ReadAsStringAsync();
+					// Handle the success case or display the success message
+					Console.WriteLine($"Success: {successMessage}");
+					Snackbar.Add("Sėkmingai redaguotas įrašas", Severity.Success);
+
+					if (currentMaintenance.repair_id == 7)
+					{
+						//jeigu vyksta tik pakrovimas
+						ChangeStatusOfTransport(3, transport);
+					}
+					if (currentMaintenance.repair_id != 7)
+					{
+						//jeigu vyksta rimtesni remontai
+						ChangeStatusOfTransport(4, transport);
+					}
+
+					GoBackToList();
+				}
+				else
+				{
+					// Handle the case where the update was not successful
+					var errorMessage = await response.Content.ReadAsStringAsync();
+					// You can access the response content, status code, etc. for more details
+					Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+					// Handle the error as needed
+					Snackbar.Add("Įvyko klaida redaguojant įrašą", Severity.Error);
+				}
+			}
+		}
+
+
+	}
+
+	private async Task ChangeStatusOfTransport(int status_id, Transport selectedtransport)
+	{
+
+		selectedtransport.status_id = status_id;
+
+		var response = await Http.PutAsJsonAsync($"http://localhost:5049/api/Transport/{selectedtransport.transport_id}", selectedtransport);
+
+		if (response.IsSuccessStatusCode)
+		{
+
+			// transport updated successfully
+			var successMessage = await response.Content.ReadAsStringAsync();
+			// Handle the success case or display the success message
+			Console.WriteLine($"Success: {successMessage}");
+			Snackbar.Add("Sėkmingai atnaujinta transporto būsena", Severity.Success);
+
+		}
+		else
+		{
+			// Handle the case where the update was not successful
+			var errorMessage = await response.Content.ReadAsStringAsync();
+			// You can access the response content, status code, etc. for more details
+			Console.WriteLine($"Error: {response.StatusCode} - {errorMessage}");
+			// Handle the error as needed
+			Snackbar.Add("Įvyko klaida atnaujinant transporto būseną", Severity.Error);
+		}
+	}
+}
